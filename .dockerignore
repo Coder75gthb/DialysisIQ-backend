@@ -1,0 +1,18 @@
+# Don't copy these into the Docker image
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.vscode/
+d1.csv
+d1_check.py
+test_*.py
+seed_patients.py
+populate_qb_mode.py
+upload_module4_d1.py
+pyrightconfig.json
+Dockerfile
+.dockerignore
