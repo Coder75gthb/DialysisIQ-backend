@@ -19,11 +19,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code and model files
 COPY . .
 
-# Render sets PORT env var; default to 8000 for local testing
-ENV PORT=8000
-
-# Expose the port
-EXPOSE ${PORT}
+# HF Spaces runs on port 7860 by default
+ENV PORT=7860
+EXPOSE 7860
 
 # Run the FastAPI app with uvicorn
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
