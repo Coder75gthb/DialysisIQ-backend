@@ -15,35 +15,51 @@ COMP_C_LE = MODEL_DIR / "module4_drifttype_le_v8.joblib"
 COMP_C_FEATURES = MODEL_DIR / "module4_drifttype_features_v8.joblib"
 INTERVENTIONS = MODEL_DIR / "module4_interventions_v8.joblib"
 
-for path in [
-    COMP_A_MODEL, COMP_A_FEATURES, DIRECTION_MODEL,
-    DIRECTION_FEATURES, COMP_C_MODEL, COMP_C_LE,
-    COMP_C_FEATURES, INTERVENTIONS
-]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing Module 4 artifact: {path}")
+# ============================================================
+# LAZY LOAD MODULE 4 ARTIFACTS
+# ============================================================
 
-COMP_A = joblib.load(COMP_A_MODEL)
-COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES))
-DIRECTION = joblib.load(DIRECTION_MODEL)
-DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES))
-COMP_C = joblib.load(COMP_C_MODEL)
-COMP_C_LE = joblib.load(COMP_C_LE)
-COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES))
-INTERVENTION_MAP = joblib.load(INTERVENTIONS)
+COMP_A = None
+COMP_A_FEATURES_LIST = []
+DIRECTION = None
+DIRECTION_FEATURES_LIST = []
+COMP_C = None
+COMP_C_LE = None
+COMP_C_FEATURES_LIST = []
+INTERVENTION_MAP = {}
 
 DRIFT_THRESHOLD = 0.40
 MIN_WINDOW = 12
 WINDOW_SIZE = 30
 RECENT_N = 8
 
-print("Loading Module 4 final artifacts...")
-print(f"Component A features: {len(COMP_A_FEATURES_LIST)}")
-print(f"Component C features: {len(COMP_C_FEATURES_LIST)}")
-print(f"Direction features: {len(DIRECTION_FEATURES_LIST)}")
-print(f"Drift threshold: {DRIFT_THRESHOLD}")
-print(f"Drift types: {list(COMP_C_LE.classes_)}")
-print("Module 4 artifacts loaded.")
+def _get_module4_models():
+    global COMP_A, COMP_A_FEATURES_LIST, DIRECTION, DIRECTION_FEATURES_LIST, COMP_C, COMP_C_LE, COMP_C_FEATURES_LIST, INTERVENTION_MAP
+    if COMP_A is None:
+        print("Loading Module 4 final artifacts...")
+        for path in [COMP_A_MODEL, COMP_A_FEATURES, DIRECTION_MODEL, DIRECTION_FEATURES, COMP_C_MODEL, COMP_C_LE, COMP_C_FEATURES, INTERVENTIONS]:
+            if not path.exists():
+                raise FileNotFoundError(f"Missing Module 4 artifact: {path}")
+        COMP_A = joblib.load(COMP_A_MODEL)
+        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES))
+        DIRECTION = joblib.load(DIRECTION_MODEL)
+        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES))
+        COMP_C = joblib.load(COMP_C_MODEL)
+        COMP_C_LE = joblib.load(COMP_C_LE)
+        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES))
+        INTERVENTION_MAP = joblib.load(INTERVENTIONS)
+        print("Module 4 artifacts loaded.")
+    return COMP_A, COMP_A_FEATURES_LIST, DIRECTION, DIRECTION_FEATURES_LIST, COMP_C, COMP_C_LE, COMP_C_FEATURES_LIST, INTERVENTION_MAP
+
+# Setup initial feature lists for import compatibility if available
+if COMP_A_FEATURES.exists() and DIRECTION_FEATURES.exists() and COMP_C_FEATURES.exists():
+    try:
+        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES))
+        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES))
+        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES))
+    except Exception:
+        pass
+
 
 
 def _fetch_patient_sessions(supabase, pid: int) -> pd.DataFrame:
@@ -446,6 +462,7 @@ def _component_c(weight_df):
 
 
 def predict_module4(supabase, pid: int):
+    _get_module4_models()
     history = _fetch_patient_sessions(
         supabase,
         pid

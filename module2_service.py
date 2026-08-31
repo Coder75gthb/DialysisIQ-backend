@@ -323,33 +323,52 @@ def compute_cardiac(df):
 
 __main__.assign_tier = assign_tier
 
-if not MODEL_PATH.exists():
-    raise FileNotFoundError(
-        f"Module 2 model not found: {MODEL_PATH}"
-    )
+# ============================================================
+# LAZY LOAD MODULE 2 ARTIFACT
+# ============================================================
 
-print("Loading final Module 2 artifact...")
-BUNDLE = joblib.load(MODEL_PATH)
+BUNDLE = None
+CLF = None
+ISO = None
+ALL_FEATURES = None
+TR_REF = None
+HIGH_THRESHOLD = 0.55
+LOW_THRESHOLD = 0.30
+QB_BASELINE_LOGIC = None
+high_thresh = 0.55
+low_thresh = 0.30
 
-CLF = BUNDLE["clf"]
-ISO = BUNDLE.get("iso")
-ALL_FEATURES = BUNDLE["all_features"]
-TR_REF = BUNDLE["tr_ref"]
+def _get_module2_models():
+    global BUNDLE, CLF, ISO, ALL_FEATURES, TR_REF, HIGH_THRESHOLD, LOW_THRESHOLD, high_thresh, low_thresh
+    if BUNDLE is None:
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(f"Module 2 model not found: {MODEL_PATH}")
+        print("Loading final Module 2 artifact...")
+        BUNDLE = joblib.load(MODEL_PATH)
+        CLF = BUNDLE["clf"]
+        ISO = BUNDLE.get("iso")
+        ALL_FEATURES = BUNDLE["all_features"]
+        TR_REF = BUNDLE["tr_ref"]
+        HIGH_THRESHOLD = float(BUNDLE.get("high_threshold", 0.55))
+        LOW_THRESHOLD = float(BUNDLE.get("low_threshold", 0.30))
+        high_thresh = HIGH_THRESHOLD
+        low_thresh = LOW_THRESHOLD
+        print("Module 2 artifact loaded.")
+    return BUNDLE, CLF, ISO, ALL_FEATURES, TR_REF
 
-HIGH_THRESHOLD = float(BUNDLE.get("high_threshold", 0.55))
-LOW_THRESHOLD = float(BUNDLE.get("low_threshold", 0.30))
-QB_BASELINE_LOGIC = BUNDLE.get("qb_baseline_logic")
+# Initial metadata setup for import compatibility
+if MODEL_PATH.exists():
+    try:
+        _meta = joblib.load(MODEL_PATH)
+        ALL_FEATURES = _meta.get("all_features", [])
+        TR_REF = _meta.get("tr_ref", {})
+        HIGH_THRESHOLD = float(_meta.get("high_threshold", 0.55))
+        LOW_THRESHOLD = float(_meta.get("low_threshold", 0.30))
+        high_thresh = HIGH_THRESHOLD
+        low_thresh = LOW_THRESHOLD
+    except Exception:
+        pass
 
-# assign_tier() uses these names because the final notebook artifact
-# was created with those globals in __main__. Keep them synchronized
-# with the thresholds stored in the final artifact.
-high_thresh = HIGH_THRESHOLD
-low_thresh = LOW_THRESHOLD
-
-print("Module 2 artifact loaded.")
-print(f"Module 2 features: {len(ALL_FEATURES)}")
-print(f"HIGH threshold: {HIGH_THRESHOLD}")
-print(f"LOW threshold: {LOW_THRESHOLD}")
 
 
 def _fetch_all_sessions(supabase, session_id):
@@ -516,6 +535,7 @@ def _engineer_module2(df):
 
 
 def _predict_probability(X):
+    _get_module2_models()
     raw = CLF.predict_proba(X)[:, 1]
     return ISO.predict(raw) if ISO is not None else raw
 

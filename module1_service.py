@@ -63,16 +63,23 @@ TRAIN_MEDIANS = CONFIG.get("train_median_fill", {})
 
 
 # ============================================================
-# LOAD FINAL MODELS
+# LAZY LOAD FINAL MODELS
 # ============================================================
 
-print("Loading Module 1 models...")
+reg_model = None
+clf_model = None
+label_encoder = None
 
-reg_model = joblib.load(REG_PATH)
-clf_model = joblib.load(CLF_PATH)
-label_encoder = joblib.load(LE_PATH)
+def _get_module1_models():
+    global reg_model, clf_model, label_encoder
+    if reg_model is None:
+        print("Loading Module 1 models...")
+        reg_model = joblib.load(REG_PATH)
+        clf_model = joblib.load(CLF_PATH)
+        label_encoder = joblib.load(LE_PATH)
+        print("Module 1 models loaded.")
+    return reg_model, clf_model, label_encoder
 
-print("Module 1 models loaded.")
 
 
 # ============================================================
@@ -1172,8 +1179,10 @@ def predict_module1(
     X = X.astype(float)
 
     # --------------------------------------------------------
-    # Regression
+    # Regression & Classification Models
     # --------------------------------------------------------
+
+    reg_model, clf_model, label_encoder = _get_module1_models()
 
     regression_prediction = float(
         reg_model.predict(

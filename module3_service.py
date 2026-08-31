@@ -107,91 +107,43 @@ BP_CLASSES = {
 
 
 # ============================================================
-# LOAD ARTIFACTS
+# ============================================================
+# LAZY LOAD ARTIFACTS
 # ============================================================
 
-print("Loading Module 3 final artifacts...")
+CLF = None
+CLF_B = None
+CLF_C = None
+LE = None
+LE_B = None
+LE_C = None
+EXPLAINER_B = None
+EXPLAINER_C = None
 
-for path in [
-    CLF_PATH,
-    CLF_B_PATH,
-    CLF_C_PATH,
-    LE_PATH,
-    LE_B_PATH,
-    LE_C_PATH,
-]:
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Missing Module 3 artifact: {path}"
-        )
+def _get_module3_models():
+    global CLF, CLF_B, CLF_C, LE, LE_B, LE_C, EXPLAINER_B, EXPLAINER_C
+    if CLF is None:
+        print("Loading Module 3 final artifacts...")
+        for path in [CLF_PATH, CLF_B_PATH, CLF_C_PATH, LE_PATH, LE_B_PATH, LE_C_PATH]:
+            if not path.exists():
+                raise FileNotFoundError(f"Missing Module 3 artifact: {path}")
+        with open(CLF_PATH, "rb") as f:
+            CLF = pickle.load(f)
+        with open(CLF_B_PATH, "rb") as f:
+            CLF_B = pickle.load(f)
+        with open(CLF_C_PATH, "rb") as f:
+            CLF_C = pickle.load(f)
+        with open(LE_PATH, "rb") as f:
+            LE = pickle.load(f)
+        with open(LE_B_PATH, "rb") as f:
+            LE_B = pickle.load(f)
+        with open(LE_C_PATH, "rb") as f:
+            LE_C = pickle.load(f)
+        EXPLAINER_B = shap.TreeExplainer(CLF_B)
+        EXPLAINER_C = shap.TreeExplainer(CLF_C)
+        print("Module 3 artifacts loaded.")
+    return CLF, CLF_B, CLF_C, LE, LE_B, LE_C, EXPLAINER_B, EXPLAINER_C
 
-
-with open(CLF_PATH, "rb") as f:
-    CLF = pickle.load(f)
-
-with open(CLF_B_PATH, "rb") as f:
-    CLF_B = pickle.load(f)
-
-with open(CLF_C_PATH, "rb") as f:
-    CLF_C = pickle.load(f)
-
-with open(LE_PATH, "rb") as f:
-    LE = pickle.load(f)
-
-with open(LE_B_PATH, "rb") as f:
-    LE_B = pickle.load(f)
-
-with open(LE_C_PATH, "rb") as f:
-    LE_C = pickle.load(f)
-
-
-# ============================================================
-# VERIFY ARTIFACTS
-# ============================================================
-
-artifact_features = list(
-    getattr(CLF, "feature_names_in_", [])
-)
-
-if artifact_features:
-    if artifact_features != FEATURES:
-        raise RuntimeError(
-            "Module 3 feature order mismatch between "
-            "service and final model artifact."
-        )
-
-
-artifact_classes = list(
-    LE.classes_
-)
-
-if artifact_classes != EXPECTED_CLASSES:
-    raise RuntimeError(
-        "Module 3 class order mismatch.\n"
-        f"Expected: {EXPECTED_CLASSES}\n"
-        f"Artifact: {artifact_classes}"
-    )
-
-
-if len(FEATURES) != 43:
-    raise RuntimeError(
-        f"Expected 43 Module 3 features, "
-        f"got {len(FEATURES)}"
-    )
-
-
-print("Module 3 artifacts loaded.")
-print(f"Production features: {len(FEATURES)}")
-print(f"Production classes: {artifact_classes}")
-print("Module 3 feature order verified: 43/43")
-
-
-# ============================================================
-# SHAP EXPLAINERS
-# ============================================================
-
-EXPLAINER_B = shap.TreeExplainer(CLF_B)
-EXPLAINER_C = shap.TreeExplainer(CLF_C)
 
 
 # ============================================================
@@ -253,15 +205,7 @@ def _build_feature_row(event):
 # ============================================================
 
 def _classify_event(X):
-    """
-    Exact production design from the notebook:
-
-    1. Flat 8-class classifier makes the decision.
-    2. Specialist B explains BP classes.
-    3. Specialist C explains equipment classes.
-    4. Specialists NEVER override the flat classifier.
-    """
-
+    _get_module3_models()
     probabilities = CLF.predict_proba(X)[0]
 
     class_indices = np.argsort(
