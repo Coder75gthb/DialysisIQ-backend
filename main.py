@@ -104,11 +104,79 @@ def _get_dict_list(data: Any) -> list[Dict[str, Any]]:
     return []
 
 
+class AuthPayload(BaseModel):
+    email: str
+    password: str
+
+
 @app.get("/")
 def root():
     return {
         "message": "DialysisIQ backend is running"
     }
+
+
+@app.post("/auth/register")
+def register_user(payload: AuthPayload):
+    try:
+        res = supabase.auth.sign_up({
+            "email": payload.email,
+            "password": payload.password,
+        })
+        if not res.user:
+            raise HTTPException(
+                status_code=400,
+                detail="User registration failed."
+            )
+        return {
+            "message": "Clinician registered successfully in Supabase Auth",
+            "user": {
+                "id": str(res.user.id),
+                "email": str(res.user.email),
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        err_msg = str(exc)
+        if "already registered" in err_msg.lower() or "already exists" in err_msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="An account with this email is already registered in Supabase. Please sign in."
+            ) from exc
+        raise HTTPException(
+            status_code=400,
+            detail=f"Registration failed: {err_msg}"
+        ) from exc
+
+
+@app.post("/auth/login")
+def login_user(payload: AuthPayload):
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": payload.email,
+            "password": payload.password,
+        })
+        if not res.session or not res.user:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid credentials."
+            )
+        return {
+            "message": "Authentication successful",
+            "access_token": res.session.access_token,
+            "user": {
+                "id": str(res.user.id),
+                "email": str(res.user.email),
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password. Please verify your credentials."
+        ) from exc
 
 
 @app.get("/patients")
