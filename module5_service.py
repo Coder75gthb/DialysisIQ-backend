@@ -11,17 +11,15 @@ PID = "pid"
 # This avoids loading hypo_final_tiered.pkl a second time and avoids
 # pickle/__main__ issues from the notebook helper function.
 from module2_service import (
-    CLF,
-    ISO,
-    ALL_FEATURES,
-    TR_REF,
-    HIGH_THRESHOLD,
-    LOW_THRESHOLD,
+    _get_module2_models,
     engineer_v7,
     compute_ktv,
     compute_lag_rolling,
     compute_cardiac,
 )
+
+BUNDLE, CLF, ISO, ALL_FEATURES, TR_REF = _get_module2_models()
+from module2_service import HIGH_THRESHOLD, LOW_THRESHOLD
 
 try:
     from groq import Groq
