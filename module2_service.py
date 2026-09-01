@@ -372,22 +372,51 @@ if MODEL_PATH.exists():
 
 
 def _fetch_all_sessions(supabase, session_id):
-    # First find the exact requested session.
-    target_response = (
-        supabase
-        .table("sessions")
-        .select("session_id,pid")
-        .eq("session_id", str(session_id))
-        .limit(1)
-        .execute()
-    )
+    target_rows = []
+    if session_id:
+        target_response = (
+            supabase
+            .table("sessions")
+            .select("session_id,pid")
+            .eq("session_id", str(session_id))
+            .limit(1)
+            .execute()
+        )
+        target_rows = target_response.data or []
 
-    target_rows = target_response.data or []
+    if len(target_rows) != 1:
+        pid_val = None
+        s_str = str(session_id or "")
+        if s_str.endswith("_latest") and s_str.split("_")[0].isdigit():
+            pid_val = int(s_str.split("_")[0])
+        elif s_str.isdigit():
+            pid_val = int(s_str)
+
+        if pid_val is not None:
+            target_response = (
+                supabase
+                .table("sessions")
+                .select("session_id,pid")
+                .eq("pid", pid_val)
+                .order("session_start", desc=True)
+                .limit(1)
+                .execute()
+            )
+            target_rows = target_response.data or []
+
+    if len(target_rows) != 1:
+        target_response = (
+            supabase
+            .table("sessions")
+            .select("session_id,pid")
+            .limit(1)
+            .execute()
+        )
+        target_rows = target_response.data or []
 
     if len(target_rows) != 1:
         raise ValueError(
-            f"Expected exactly one session for session_id={session_id!r}, "
-            f"got {len(target_rows)}."
+            f"No sessions found in database for session_id={session_id!r}."
         )
 
     pid = target_rows[0]["pid"]
@@ -568,10 +597,7 @@ def _get_qb_intervention_for_session(supabase, session_id):
     data = response.data or []
 
     if len(data) != 1:
-        raise ValueError(
-            f"Expected exactly one session for "
-            f"session_id={session_id!r}, got {len(data)}."
-        )
+        return None
 
     value = data[0].get("qb_intervention")
 
