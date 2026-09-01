@@ -660,47 +660,6 @@ def _fetch_train_patient_stats(supabase, pid):
 # ============================================================
 
 def _fetch_global_train_fallbacks(supabase):
-
-    rows = []
-
-    start = 0
-    page_size = 1000
-
-    while True:
-
-        response = (
-            supabase
-            .table("sessions")
-            .select(
-                "session_start,"
-                "qb_mode,"
-                "pre_sbp,"
-                "pre_dbp"
-            )
-            .lt(
-                "session_start",
-                "2017-01-01T00:00:00"
-            )
-            .order(
-                "session_start",
-                desc=False
-            )
-            .range(
-                start,
-                start + page_size - 1
-            )
-            .execute()
-        )
-
-        page = response.data or []
-
-        rows.extend(page)
-
-        if len(page) < page_size:
-            break
-
-        start += page_size
-
     try:
         response = (
             supabase
