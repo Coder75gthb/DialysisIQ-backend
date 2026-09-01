@@ -111,6 +111,7 @@ def _get_dict_list(data: Any) -> list[Dict[str, Any]]:
 class AuthPayload(BaseModel):
     email: str
     password: str
+    full_name: Optional[str] = None
 
 
 @app.get("/")
@@ -123,12 +124,16 @@ def root():
 @app.post("/auth/register")
 def register_user(payload: AuthPayload):
     try:
+        signup_opts: Dict[str, Any] = {
+            "email": payload.email,
+            "password": payload.password,
+        }
+        if payload.full_name:
+            signup_opts["options"] = {"data": {"full_name": payload.full_name}}
+
         credentials = cast(
             SignUpWithEmailAndPasswordCredentials,
-            {
-                "email": payload.email,
-                "password": payload.password,
-            },
+            signup_opts,
         )
         res = supabase.auth.sign_up(credentials)
         if not res.user:
@@ -136,11 +141,16 @@ def register_user(payload: AuthPayload):
                 status_code=400,
                 detail="User registration failed."
             )
+
+        user_meta = res.user.user_metadata or {}
+        user_fullname = user_meta.get("full_name") or payload.full_name or ""
+
         return {
             "message": "Clinician registered successfully in Supabase Auth",
             "user": {
                 "id": res.user.id,
                 "email": res.user.email or "",
+                "full_name": user_fullname,
             }
         }
     except HTTPException:
@@ -174,12 +184,17 @@ def login_user(payload: AuthPayload):
                 status_code=401,
                 detail="Invalid credentials."
             )
+
+        user_meta = res.user.user_metadata or {}
+        user_fullname = user_meta.get("full_name") or ""
+
         return {
             "message": "Authentication successful",
             "access_token": res.session.access_token,
             "user": {
                 "id": res.user.id,
                 "email": res.user.email or "",
+                "full_name": user_fullname,
             }
         }
     except HTTPException:
