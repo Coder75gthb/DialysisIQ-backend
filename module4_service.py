@@ -6,14 +6,14 @@ import pandas as pd
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models"
 
-COMP_A_MODEL = MODEL_DIR / "module4_compA_clf.pkl"
-COMP_A_FEATURES = MODEL_DIR / "module4_compA_features.pkl"
-DIRECTION_MODEL = MODEL_DIR / "module4_direction_clf_final.joblib"
-DIRECTION_FEATURES = MODEL_DIR / "module4_direction_features_final.joblib"
-COMP_C_MODEL = MODEL_DIR / "module4_drifttype_clf_v8.joblib"
-COMP_C_LE = MODEL_DIR / "module4_drifttype_le_v8.joblib"
-COMP_C_FEATURES = MODEL_DIR / "module4_drifttype_features_v8.joblib"
-INTERVENTIONS = MODEL_DIR / "module4_interventions_v8.joblib"
+COMP_A_MODEL_PATH = MODEL_DIR / "module4_compA_clf.pkl"
+COMP_A_FEATURES_PATH = MODEL_DIR / "module4_compA_features.pkl"
+DIRECTION_MODEL_PATH = MODEL_DIR / "module4_direction_clf_final.joblib"
+DIRECTION_FEATURES_PATH = MODEL_DIR / "module4_direction_features_final.joblib"
+COMP_C_MODEL_PATH = MODEL_DIR / "module4_drifttype_clf_v8.joblib"
+COMP_C_LE_PATH = MODEL_DIR / "module4_drifttype_le_v8.joblib"
+COMP_C_FEATURES_PATH = MODEL_DIR / "module4_drifttype_features_v8.joblib"
+INTERVENTIONS_PATH = MODEL_DIR / "module4_interventions_v8.joblib"
 
 # ============================================================
 # LAZY LOAD MODULE 4 ARTIFACTS
@@ -37,26 +37,36 @@ def _get_module4_models():
     global COMP_A, COMP_A_FEATURES_LIST, DIRECTION, DIRECTION_FEATURES_LIST, COMP_C, COMP_C_LE, COMP_C_FEATURES_LIST, INTERVENTION_MAP
     if COMP_A is None:
         print("Loading Module 4 final artifacts...")
-        for path in [COMP_A_MODEL, COMP_A_FEATURES, DIRECTION_MODEL, DIRECTION_FEATURES, COMP_C_MODEL, COMP_C_LE, COMP_C_FEATURES, INTERVENTIONS]:
+        paths = [
+            COMP_A_MODEL_PATH,
+            COMP_A_FEATURES_PATH,
+            DIRECTION_MODEL_PATH,
+            DIRECTION_FEATURES_PATH,
+            COMP_C_MODEL_PATH,
+            COMP_C_LE_PATH,
+            COMP_C_FEATURES_PATH,
+            INTERVENTIONS_PATH,
+        ]
+        for path in paths:
             if not path.exists():
                 raise FileNotFoundError(f"Missing Module 4 artifact: {path}")
-        COMP_A = joblib.load(COMP_A_MODEL)
-        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES))
-        DIRECTION = joblib.load(DIRECTION_MODEL)
-        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES))
-        COMP_C = joblib.load(COMP_C_MODEL)
-        COMP_C_LE = joblib.load(COMP_C_LE)
-        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES))
-        INTERVENTION_MAP = joblib.load(INTERVENTIONS)
+        COMP_A = joblib.load(COMP_A_MODEL_PATH)
+        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES_PATH))
+        DIRECTION = joblib.load(DIRECTION_MODEL_PATH)
+        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES_PATH))
+        COMP_C = joblib.load(COMP_C_MODEL_PATH)
+        COMP_C_LE = joblib.load(COMP_C_LE_PATH)
+        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES_PATH))
+        INTERVENTION_MAP = joblib.load(INTERVENTIONS_PATH)
         print("Module 4 artifacts loaded.")
     return COMP_A, COMP_A_FEATURES_LIST, DIRECTION, DIRECTION_FEATURES_LIST, COMP_C, COMP_C_LE, COMP_C_FEATURES_LIST, INTERVENTION_MAP
 
 # Setup initial feature lists for import compatibility if available
-if COMP_A_FEATURES.exists() and DIRECTION_FEATURES.exists() and COMP_C_FEATURES.exists():
+if COMP_A_FEATURES_PATH.exists() and DIRECTION_FEATURES_PATH.exists() and COMP_C_FEATURES_PATH.exists():
     try:
-        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES))
-        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES))
-        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES))
+        COMP_A_FEATURES_LIST = list(joblib.load(COMP_A_FEATURES_PATH))
+        DIRECTION_FEATURES_LIST = list(joblib.load(DIRECTION_FEATURES_PATH))
+        COMP_C_FEATURES_LIST = list(joblib.load(COMP_C_FEATURES_PATH))
     except Exception:
         pass
 

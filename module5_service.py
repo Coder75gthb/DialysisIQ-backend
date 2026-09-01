@@ -487,10 +487,12 @@ def fetch_all_module4_sessions(supabase, force_refresh=False):
 def _drift_check(pid, sessions):
     try:
         from module4_service import (
+            _get_module4_models,
             _prepare_weight_history,
             _component_a,
             _component_c,
         )
+        _get_module4_models()
 
         if isinstance(sessions, dict):
             pat = sessions.get(pid)

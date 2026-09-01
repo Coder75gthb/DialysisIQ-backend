@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 import threading
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, cast
 
 BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
@@ -13,6 +13,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client
+from supabase_auth import (
+    SignUpWithEmailAndPasswordCredentials,
+    SignInWithEmailAndPasswordCredentials,
+)
 from dotenv import load_dotenv
 
 from module1_service import predict_module1
@@ -119,10 +123,14 @@ def root():
 @app.post("/auth/register")
 def register_user(payload: AuthPayload):
     try:
-        res = supabase.auth.sign_up({
-            "email": payload.email,
-            "password": payload.password,
-        })
+        credentials = cast(
+            SignUpWithEmailAndPasswordCredentials,
+            {
+                "email": payload.email,
+                "password": payload.password,
+            },
+        )
+        res = supabase.auth.sign_up(credentials)
         if not res.user:
             raise HTTPException(
                 status_code=400,
@@ -131,8 +139,8 @@ def register_user(payload: AuthPayload):
         return {
             "message": "Clinician registered successfully in Supabase Auth",
             "user": {
-                "id": str(res.user.id),
-                "email": str(res.user.email),
+                "id": res.user.id,
+                "email": res.user.email or "",
             }
         }
     except HTTPException:
@@ -153,10 +161,14 @@ def register_user(payload: AuthPayload):
 @app.post("/auth/login")
 def login_user(payload: AuthPayload):
     try:
-        res = supabase.auth.sign_in_with_password({
-            "email": payload.email,
-            "password": payload.password,
-        })
+        credentials = cast(
+            SignInWithEmailAndPasswordCredentials,
+            {
+                "email": payload.email,
+                "password": payload.password,
+            },
+        )
+        res = supabase.auth.sign_in_with_password(credentials)
         if not res.session or not res.user:
             raise HTTPException(
                 status_code=401,
@@ -166,8 +178,8 @@ def login_user(payload: AuthPayload):
             "message": "Authentication successful",
             "access_token": res.session.access_token,
             "user": {
-                "id": str(res.user.id),
-                "email": str(res.user.email),
+                "id": res.user.id,
+                "email": res.user.email or "",
             }
         }
     except HTTPException:
