@@ -73,17 +73,21 @@ label_encoder = None
 def _get_module1_models():
     global reg_model, clf_model, label_encoder
     if reg_model is None:
-        print("Loading Module 1 models...")
+        print("Loading Module 1 reg_model...")
         try:
             reg_model = joblib.load(REG_PATH)
+            print("Module 1 reg_model loaded.")
         except Exception as exc:
-            print(f"Module 1 reg_model load skipped/failed: {exc}")
-        try:
-            clf_model = joblib.load(CLF_PATH)
-            label_encoder = joblib.load(LE_PATH)
-        except Exception as exc:
-            print(f"Module 1 clf_model load skipped/failed: {exc}")
-        print("Module 1 model loading finished.")
+            print(f"Module 1 reg_model load failed: {exc}")
+        
+        # Load heavy 66MB classifier only if explicitly enabled
+        if os.environ.get("LOAD_HEAVY_CLF") == "1":
+            try:
+                clf_model = joblib.load(CLF_PATH)
+                label_encoder = joblib.load(LE_PATH)
+                print("Module 1 clf_model loaded.")
+            except Exception as exc:
+                print(f"Module 1 clf_model load skipped: {exc}")
     return reg_model, clf_model, label_encoder
 
 
